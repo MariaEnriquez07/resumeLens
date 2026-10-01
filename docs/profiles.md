@@ -64,9 +64,8 @@ automaton of the assignment (q2 → q3 on any of the three).
 | 7 | infrastructure_as_code | TERRAFORM, ANSIBLE | optional |
 | 8 | version_control | GIT | yes |
 
-Variants normalized for this profile: `k8s` → KUBERNETES, `Ubuntu` /
-`GNU/Linux` → LINUX, `Amazon Web Services` → AWS, `GH Actions` →
-GITHUB_ACTIONS, `GitLab CI/CD` → GITLAB_CI, `Docker Compose` → DOCKER, …
+Variants normalized for this profile: `k8s` → KUBERNETES, `Ubuntu` → LINUX,
+`Amazon Web Services` → AWS, `Google Cloud` → GCP, `GitLab-CI` → GITLAB_CI.
 
 ## 4. Data Analyst — DFA (team profile, AI / data)
 
@@ -78,8 +77,8 @@ GITHUB_ACTIONS, `GitLab CI/CD` → GITLAB_CI, `Docker Compose` → DOCKER, …
 | 4 | programming | PYTHON, R | yes |
 | 5 | statistics | STATISTICS | optional |
 
-Variants normalized for this profile: `PowerBI` / `Power-BI` → POWER_BI,
-`MS Excel` → EXCEL, `RStudio` → R, `Statistical analysis` → STATISTICS, …
+Variants normalized for this profile: `PowerBI` → POWER_BI,
+`MS Excel` → EXCEL, `GitHub` → GIT.
 
 ## Design decisions
 
@@ -93,5 +92,9 @@ Variants normalized for this profile: `PowerBI` / `Power-BI` → POWER_BI,
   React is not rejected because of the extra skill.
 * **Different automaton types.** Each profile declares an official model so that
   the three kinds seen in the course are used: DFA (Full Stack, Data Analyst),
-  NFA (ML Engineer) and ε-NFA (DevOps). The tests prove the three constructions
-  are equivalent for every profile.
+  NFA (ML Engineer) and ε-NFA (DevOps).
+* **Small catalog.** Each qualification has 1–3 variants. This is enough to
+  show the normalization problem while keeping the transducers readable.
+
+> ⚠️ The assignment says that detailed requirements for the team profiles will be
+> provided separately. Adjust the slots above if the professor gives extra rules.
