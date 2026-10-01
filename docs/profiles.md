@@ -95,6 +95,3 @@ Variants normalized for this profile: `PowerBI` → POWER_BI,
   NFA (ML Engineer) and ε-NFA (DevOps).
 * **Small catalog.** Each qualification has 1–3 variants. This is enough to
   show the normalization problem while keeping the transducers readable.
-
-> ⚠️ The assignment says that detailed requirements for the team profiles will be
-> provided separately. Adjust the slots above if the professor gives extra rules.
