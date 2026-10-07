@@ -1,0 +1,12 @@
+Bruce Wayne
+bruce@wayne-enterprises.com
+
+8 years of experience designing scalable platforms.
+
+Staff Engineer at Wayne Enterprises (2018 - Present)
+
+Bachelor of Science in Computer Engineering, Gotham University (2016)
+
+Frontend: TypeScript, Angular
+Backend: Spring Boot, REST APIs, PostgreSQL, MongoDB
+Operations: Linux, Bash, Docker, Kubernetes, GitLab CI, Azure, Ansible, Git

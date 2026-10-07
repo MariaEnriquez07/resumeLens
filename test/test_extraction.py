@@ -86,7 +86,7 @@ def test_skills_are_kept_as_written():
 # TC-E05 — custom word boundaries
 @pytest.mark.parametrize("text,expected", [
     ("Node.js", ["Node.js"]),                   # not 'js' inside Node.js
-    ("GNU/Linux", ["GNU/Linux"]),               # not 'linux' alone
+    ("Vue.js, React.js", ["Vue.js", "React.js"]),
     ("PostgreSQL and MySQL", ["PostgreSQL", "MySQL"]),  # no 'SQL' inside
     ("GitHub Actions, GitHub", ["GitHub Actions", "GitHub"]),
     ("javascript", ["javascript"]),
@@ -116,15 +116,16 @@ def test_urls_are_not_scanned_as_skills():
 
 
 # TC-E08 — every variant of the catalog is fully matched by its category regex
+# (the case-sensitive ones are tested separately below)
 @pytest.mark.parametrize("category,variant", [
     (c, v) for c, entries in LEXICON.items() for vs in entries.values() for v in vs
-    if v not in ("r", "r studio", "rstudio", "shell", "express", "excel", "rest", "restful")
+    if v not in ("r", "shell", "express", "excel", "rest")
 ])
 def test_catalog_variant_is_extracted(category, variant):
     m = SKILL_PATTERNS[category].fullmatch(variant)
     assert m is not None, f"{variant!r} not matched by {category} pattern"
 
 
-@pytest.mark.parametrize("variant", ["R", "RStudio", "Shell", "Express", "Excel", "REST", "RESTful"])
+@pytest.mark.parametrize("variant", ["R", "Shell", "Express", "Excel", "REST"])
 def test_case_sensitive_variants(variant):
     assert raw(variant) == [variant]

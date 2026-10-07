@@ -1,0 +1,32 @@
+resume {
+    candidate "Wednesday Addams";
+
+    contact {
+    }
+
+    experience {
+        total years: 3;
+        summary: "developing web applications";
+    }
+
+    skills {
+        LANGUAGES: JAVASCRIPT;
+        FRAMEWORKS: REACT, NODE_JS;
+        DATABASES: POSTGRESQL;
+        TOOLS: GIT;
+    }
+
+    classification {
+        profile FULL_STACK_DEVELOPER is ACCEPTED via DFA
+            sequence: JAVASCRIPT, REACT, NODE_JS, POSTGRESQL, GIT;
+        profile MACHINE_LEARNING_ENGINEER is REJECTED via NFA
+            sequence: POSTGRESQL, GIT
+            missing: "Python", "Pandas or NumPy", "Scikit-learn, TensorFlow or PyTorch";
+        profile DEVOPS_ENGINEER is REJECTED via ENFA
+            sequence: GIT
+            missing: "Linux", "Bash or Python", "Docker", "Kubernetes", "Jenkins, GitHub Actions or GitLab CI", "AWS, Azure or GCP";
+        profile DATA_ANALYST is REJECTED via DFA
+            sequence: POSTGRESQL
+            missing: "Excel", "Power BI or Tableau", "Python or R";
+    }
+}

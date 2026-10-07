@@ -1,0 +1,7 @@
+Diana Prince
+diana.prince@themyscira.org   +1 212 555 0147
+
+6 yrs of experience with full stack web development.
+
+Skills
+javascript, Vue.js, Express.js, REST API, No-SQL, MongoDB, github, k8s

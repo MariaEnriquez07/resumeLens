@@ -1,0 +1,7 @@
+Clark Kent
+clark.kent@dailyplanet.com
+
+1 year of experience developing landing pages.
+
+Technical Skills:
+JavaScript, Vue, HTML, CSS, MySQL, Git.

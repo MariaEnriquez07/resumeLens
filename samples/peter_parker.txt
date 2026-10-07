@@ -1,0 +1,17 @@
+Peter Parker
+peter.parker@dailybugle.com | +57 300 123 4567
+github.com/pparker | linkedin.com/in/peter-parker
+
+Summary
+5 years of experience building cloud infrastructure and deployment pipelines.
+
+Experience
+- DevOps Engineer at Oscorp Industries (2022 - Present)
+- Systems Administrator at Daily Bugle (2020 - 2022)
+
+Education
+B.Sc. in Systems Engineering, Universidad Icesi (2020)
+
+Skills
+Ubuntu, Bash, Python, Docker, K8s, GitHub Actions, Jenkins,
+Amazon Web Services, Terraform, Git.
