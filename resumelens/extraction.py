@@ -2,7 +2,7 @@
 
 This stage only *finds* candidate strings in the raw text. It does NOT decide
 whether two strings are equivalent (that is Stage 2) nor whether the candidate
-fits a profile (Stage 3). Every string is reported exactly as written.
+fits a profile (that is Stage 3). Every string is reported exactly as written.
 
 Each pattern is documented in ``docs/stage1_regex.md``.
 """
@@ -78,8 +78,90 @@ EDUCATION_RE = re.compile(
 )
 
 # --------------------------------------------------------------------------- #
+# Qualifications (skills). One regular expression per category.
+# --------------------------------------------------------------------------- #
+# A match must not be glued to other word characters. ``(?<![...])`` and
+# ``(?![...])`` implement a custom word boundary that also treats '.', '/',
+# '#', '+', '@' and '-' as part of a word, so "js" is not found inside
+# "Node.js" and "linux" is not found inside "gnu/linux".
+_LEFT = r"(?<![\w.#+/@&-])"
+_RIGHT = r"(?![\w#+/@&-]|\.\w)"
+
+SKILL_FRAGMENTS: dict[str, list[str]] = {
+    "LANGUAGES": [
+        r"java\s?script", r"ecmascript", r"js",
+        r"type\s?script", r"ts",
+        r"python\s?3?", r"py",
+        r"java",
+        r"bash", r"shell\s+scripting", r"(?-i:Shell)",
+        r"(?-i:R)\s?studio", r"(?-i:R)",
+    ],
+    "FRAMEWORKS": [
+        r"react(?:\.js|\s?js)?",
+        r"angular(?:\.js|js)?",
+        r"vue(?:\.js|js)?",
+        r"node(?:\.js|\s?js)?",
+        r"express(?:\.js|js)", r"(?-i:Express)",
+        r"django",
+        r"spring[\s-]?boot",
+        r"rest(?:ful)?\s?apis?", r"(?-i:RESTful|REST)", r"api\s+rest",
+    ],
+    "DATABASES": [
+        r"no[\s-]?sql",
+        r"postgre\s?sql", r"postgres", r"psql",
+        r"my\s?sql",
+        r"mongo\s?db", r"mongo",
+        r"sqlite",
+        r"sql",
+    ],
+    "ML_DATA": [
+        r"pandas",
+        r"num\s?py",
+        r"scikit[\s-]?learn", r"sklearn",
+        r"tensor\s?flow",
+        r"py\s?torch", r"torch",
+        r"machine[\s-]learning(?:\s+models?)?",
+        r"predictive\s+model(?:s|ing)",
+        r"ml\s+models?",
+        r"model\s+development",
+    ],
+    "DEVOPS_CLOUD": [
+        r"gnu/linux", r"linux", r"ubuntu", r"debian", r"centos",
+        r"docker(?:[\s-]compose)?",
+        r"kubernetes", r"k8s",
+        r"jenkins",
+        r"github\s+actions", r"gh\s+actions",
+        r"gitlab[\s-]ci(?:/cd)?",
+        r"amazon\s+web\s+services", r"aws",
+        r"microsoft\s+azure", r"azure",
+        r"google\s+cloud(?:\s+platform)?", r"gcp",
+        r"terraform", r"ansible",
+    ],
+    "TOOLS": [
+        r"git(?:hub)?",
+        r"(?:ms|microsoft)\s+excel", r"(?-i:Excel)",
+        r"power[\s-]?bi",
+        r"tableau",
+        r"statistical\s+analysis", r"statistics", r"estad[ií]stica",
+    ],
+}
+
+SKILL_PATTERNS: dict[str, re.Pattern[str]] = {
+    category: re.compile(_LEFT + "(?:" + "|".join(frags) + ")" + _RIGHT, re.IGNORECASE)
+    for category, frags in SKILL_FRAGMENTS.items()
+}
+
+# --------------------------------------------------------------------------- #
 # Result objects
 # --------------------------------------------------------------------------- #
+
+
+@dataclass
+class SkillMention:
+    category: str
+    text: str
+    start: int
+    end: int
 
 
 @dataclass
@@ -110,6 +192,12 @@ class ExtractionResult:
     experience_summary: str | None = None
     jobs: list[Job] = field(default_factory=list)
     education: list[Education] = field(default_factory=list)
+    skills: list[SkillMention] = field(default_factory=list)
+
+    @property
+    def raw_skills(self) -> list[str]:
+        """Skill strings exactly as written (input for Stage 2)."""
+        return [s.text for s in self.skills]
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -134,6 +222,40 @@ def extract_name(text: str) -> str | None:
             m = NAME_RE.match(line)
             return m.group(1) if m else None
     return None
+
+
+def _mask(text: str, patterns: list[re.Pattern[str]]) -> str:
+    """Replace matches with spaces (keeps offsets) so URLs/e-mails are not
+    scanned again as skills (e.g. 'github' inside 'github.com/...')."""
+    chars = list(text)
+    for pat in patterns:
+        for m in pat.finditer(text):
+            for i in range(m.start(), m.end()):
+                chars[i] = " "
+    return "".join(chars)
+
+
+def extract_skills(text: str) -> list[SkillMention]:
+    """Find every qualification mention.
+
+    All category patterns are applied; when two matches overlap the longest
+    one is kept (leftmost-longest policy), e.g. "Py Torch" (ML_DATA) wins over
+    "Py" (LANGUAGES) and "GitHub Actions" wins over "GitHub".
+    """
+    masked = _mask(text, [EMAIL_RE, LINKEDIN_RE, GITHUB_RE])
+    found: list[SkillMention] = []
+    for category, pattern in SKILL_PATTERNS.items():
+        for m in pattern.finditer(masked):
+            found.append(SkillMention(category, m.group(0), m.start(), m.end()))
+
+    found.sort(key=lambda s: (-(s.end - s.start), s.start))
+    kept: list[SkillMention] = []
+    for s in found:
+        if all(s.end <= k.start or s.start >= k.end for k in kept):
+            kept.append(s)
+    kept.sort(key=lambda s: s.start)
+    return kept
+
 
 def extract_experience(text: str) -> tuple[int | None, str | None, list[Job]]:
     years = summary = None
@@ -180,4 +302,5 @@ def extract(text: str) -> ExtractionResult:
         experience_summary=summary,
         jobs=jobs,
         education=extract_education(text),
+        skills=extract_skills(text),
     )
