@@ -1,0 +1,58 @@
+digraph "MACHINE_LEARNING_ENGINEER_NFA" {
+  rankdir=LR;
+  node [shape=circle fontname="Helvetica" fontsize=11];
+  edge [fontname="Helvetica" fontsize=9];
+  start [shape=point];
+  start -> q0;
+  q6 [shape=doublecircle];
+  q0 -> q1 [label="PYTHON"];
+  q0 -> p1 [label="PYTHON"];
+  q1 -> q2 [label="PANDAS
+NUMPY"];
+  q1 -> p2 [label="PANDAS
+NUMPY"];
+  q2 -> q3 [label="SCIKIT_LEARN
+TENSORFLOW
+PYTORCH"];
+  q2 -> p3 [label="SCIKIT_LEARN
+TENSORFLOW
+PYTORCH"];
+  q3 -> q4 [label="ML_MODELING"];
+  q3 -> p4 [label="ML_MODELING"];
+  q3 -> q5 [label="SQL
+POSTGRESQL
+MYSQL"];
+  q3 -> p5 [label="SQL
+POSTGRESQL
+MYSQL"];
+  q4 -> q5 [label="SQL
+POSTGRESQL
+MYSQL"];
+  q4 -> p5 [label="SQL
+POSTGRESQL
+MYSQL"];
+  q5 -> q6 [label="GIT"];
+  q5 -> p6 [label="GIT"];
+  p1 -> p1 [label="PYTHON"];
+  p1 -> q1 [label="PYTHON"];
+  p2 -> p2 [label="PANDAS
+NUMPY"];
+  p2 -> q2 [label="PANDAS
+NUMPY"];
+  p3 -> p3 [label="SCIKIT_LEARN
+TENSORFLOW
+PYTORCH"];
+  p3 -> q3 [label="SCIKIT_LEARN
+TENSORFLOW
+PYTORCH"];
+  p4 -> p4 [label="ML_MODELING"];
+  p4 -> q4 [label="ML_MODELING"];
+  p5 -> p5 [label="SQL
+POSTGRESQL
+MYSQL"];
+  p5 -> q5 [label="SQL
+POSTGRESQL
+MYSQL"];
+  p6 -> p6 [label="GIT"];
+  p6 -> q6 [label="GIT"];
+}

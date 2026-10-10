@@ -1,0 +1,48 @@
+digraph "FULL_STACK_DEVELOPER_DFA" {
+  rankdir=LR;
+  node [shape=circle fontname="Helvetica" fontsize=11];
+  edge [fontname="Helvetica" fontsize=9];
+  start [shape=point];
+  start -> q0;
+  q6 [shape=doublecircle];
+  q0 -> q1 [label="JAVASCRIPT
+TYPESCRIPT"];
+  q1 -> q1 [label="JAVASCRIPT
+TYPESCRIPT"];
+  q1 -> q2 [label="REACT
+ANGULAR
+VUE"];
+  q2 -> q2 [label="REACT
+ANGULAR
+VUE"];
+  q2 -> q3 [label="NODE_JS
+EXPRESS
+DJANGO
+SPRING_BOOT"];
+  q3 -> q3 [label="NODE_JS
+EXPRESS
+DJANGO
+SPRING_BOOT"];
+  q3 -> q4 [label="REST_API"];
+  q3 -> q5 [label="SQL
+NOSQL
+POSTGRESQL
+MYSQL
+MONGODB
+SQLITE"];
+  q4 -> q4 [label="REST_API"];
+  q4 -> q5 [label="SQL
+NOSQL
+POSTGRESQL
+MYSQL
+MONGODB
+SQLITE"];
+  q5 -> q5 [label="SQL
+NOSQL
+POSTGRESQL
+MYSQL
+MONGODB
+SQLITE"];
+  q5 -> q6 [label="GIT"];
+  q6 -> q6 [label="GIT"];
+}

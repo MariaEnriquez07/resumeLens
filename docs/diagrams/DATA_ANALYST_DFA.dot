@@ -1,0 +1,27 @@
+digraph "DATA_ANALYST_DFA" {
+  rankdir=LR;
+  node [shape=circle fontname="Helvetica" fontsize=11];
+  edge [fontname="Helvetica" fontsize=9];
+  start [shape=point];
+  start -> q0;
+  q4 [shape=doublecircle];
+  q5 [shape=doublecircle];
+  q0 -> q1 [label="SQL
+MYSQL
+POSTGRESQL"];
+  q1 -> q1 [label="SQL
+MYSQL
+POSTGRESQL"];
+  q1 -> q2 [label="EXCEL"];
+  q2 -> q2 [label="EXCEL"];
+  q2 -> q3 [label="POWER_BI
+TABLEAU"];
+  q3 -> q3 [label="POWER_BI
+TABLEAU"];
+  q3 -> q4 [label="PYTHON
+R"];
+  q4 -> q4 [label="PYTHON
+R"];
+  q4 -> q5 [label="STATISTICS"];
+  q5 -> q5 [label="STATISTICS"];
+}
