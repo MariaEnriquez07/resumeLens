@@ -1,0 +1,13 @@
+Tony Stark
+tony@starkindustries.com
+linkedin.com/in/tonystark
+
+10 years of experience developing machine learning models for robotics.
+
+Head of AI at Stark Industries (2016 - Present)
+Research Engineer at Stark Labs (2012 - 2016)
+
+Ph.D. in Electrical Engineering, MIT (2012)
+M.Sc. in Computer Science, MIT (2009)
+
+Stack: python, numpy, pandas, sklearn, Py Torch, Tensor Flow, Postgres, Git, Linux, Docker
