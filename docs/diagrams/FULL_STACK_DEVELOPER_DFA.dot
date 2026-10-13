@@ -24,13 +24,13 @@ EXPRESS
 DJANGO
 SPRING_BOOT"];
   q3 -> q4 [label="REST_API"];
+  q4 -> q4 [label="REST_API"];
   q3 -> q5 [label="SQL
 NOSQL
 POSTGRESQL
 MYSQL
 MONGODB
 SQLITE"];
-  q4 -> q4 [label="REST_API"];
   q4 -> q5 [label="SQL
 NOSQL
 POSTGRESQL

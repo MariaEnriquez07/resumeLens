@@ -95,10 +95,10 @@ def automaton_dot(spec) -> str:
     for s in spec.states:
         if s in finals:
             lines.append(f"  {s} [shape=doublecircle];")
-    groups: "OrderedDict[tuple[str, str], list[str]]" = OrderedDict()
+    groups: "OrderedDict[tuple[str, str, bool], list[str]]" = OrderedDict()
     for src, sym, dst in spec.transitions:
-        groups.setdefault((src, dst), []).append(sym)
-    for (src, dst), syms in groups.items():
+        groups.setdefault((src, dst, sym == LAMBDA), []).append(sym)
+    for (src, dst, _), syms in groups.items():
         style = ' style=dashed' if syms == [LAMBDA] else ""
         lines.append(f'  {src} -> {dst} [label="{dot_escape(chr(10).join(syms))}"{style}];')
     lines.append("}")
@@ -108,22 +108,19 @@ def automaton_dot(spec) -> str:
 def justification(spec) -> str:
     delta = spec.delta()
     if spec.kind == "DFA":
-        return ("It is a **DFA**: there are no λ-transitions and for every pair (q, a) "
-                "δ(q, a) contains at most one state (the alternative sets of different "
-                "slots are disjoint). δ is a *partial* function Q × Σ → Q; the missing "
-                "pairs go to an implicit dead state, which is why pyformlang's "
-                "`is_deterministic()` returns True.")
-    multi = next(((q, a, d) for (q, a), d in delta.items() if len(d) > 1), None)
-    example = (f" For example δ({multi[0]}, {multi[1]}) = {{{', '.join(multi[2])}}}."
-               if multi else "")
+        return ("It is a **DFA**: there are no λ-transitions and every pair (q, a) has "
+                "at most one next state. δ is partial (Q × Σ → Q); every missing pair "
+                "goes to an implicit dead state that rejects.")
     if spec.kind == "NFA":
-        return ("It is an **NFA** (without λ-transitions): δ : Q × Σ → ℘(Q) and some pairs "
-                "have more than one successor, because on reading a symbol of a slot the "
-                "automaton guesses whether it is the last one of that slot." + example)
-    lam = [(q, d) for (q, a), d in delta.items() if a == LAMBDA]
-    return ("It is an **ε-NFA (λ-NFA)**: δ : Q × (Σ ∪ {λ}) → ℘(Q) and it contains "
-            f"{sum(len(d) for _, d in lam)} λ-transitions, used to repeat a slot "
-            "(t → s), to move to the next slot and to skip optional slots." + example)
+        q, a, d = next((q, a, d) for (q, a), d in delta.items() if len(d) > 1)
+        return ("It is an **NFA** (without λ-transitions): δ : Q × Σ → ℘(Q) and some "
+                f"pairs have two next states, for example δ({q}, {a}) = {{{', '.join(d)}}}. "
+                "On reading a symbol of a requirement the automaton guesses whether more "
+                "symbols of that requirement follow (it stays) or not (it advances).")
+    q, d = next((q, d) for (q, a), d in delta.items() if a == LAMBDA)
+    return ("It is an **ε-NFA (λ-NFA)**: δ : Q × (Σ ∪ {λ}) → ℘(Q) and it has a "
+            f"λ-transition δ({q}, λ) = {{{', '.join(d)}}}, used to skip the optional "
+            "requirement without reading a symbol.")
 
 
 def pattern_text(profile) -> str:

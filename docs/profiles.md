@@ -6,7 +6,7 @@ Engineer** (software engineering) and **Data Analyst** (AI / data).
 
 All four are processed by the *same* code: a profile is **data** (an ordered
 list of slots in `resumelens/profiles.py`), and the automaton of each profile is
-built by the same generic constructions (`resumelens/recognition.py`).
+written by hand in `resumelens/recognition.py`, one per profile.
 
 ## How a profile is defined
 
@@ -95,3 +95,4 @@ Variants normalized for this profile: `PowerBI` → POWER_BI,
   NFA (ML Engineer) and ε-NFA (DevOps).
 * **Small catalog.** Each qualification has 1–3 variants. This is enough to
   show the normalization problem while keeping the transducers readable.
+

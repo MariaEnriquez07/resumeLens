@@ -28,8 +28,8 @@ Each test function is tagged in its docstring/comment with the IDs below.
 | TC-E02 | Contact: valid and invalid e-mails and phones, links | `test.example.com` ✗, `(602) 555-0199` ✓, `(2019 - 2022)` ✗ |
 | TC-E03 | Jobs, degrees, several degrees, `yrs` | Peter Parker, Tony Stark |
 | TC-E04 | Text is kept as written (no normalization) | `Py Torch` stays `Py Torch` |
-| TC-E05 | Custom word boundaries | no `js` in `Node.js`, no `SQL` in `PostgreSQL` |
-| TC-E06 | Leftmost-longest overlap resolution | `Py Torch` → ML_DATA |
+| TC-E05 | Word boundaries `\b` and longest alternative first | no `js` in `Node.js`, no `SQL` in `PostgreSQL` |
+| TC-E06 | Order of the categories (ML_DATA before LANGUAGES) | `Py Torch` → ML_DATA |
 | TC-E07 | False positives avoided | "the rest of the team", "excel at", "express your ideas", URLs |
 | TC-E08 | Every catalog variant is matched by its category pattern | 71 variants |
 
@@ -48,7 +48,7 @@ Each test function is tagged in its docstring/comment with the IDs below.
 
 | ID | What is checked |
 |---|---|
-| TC-A01 | The declared type matches the definition (DFA: no λ and at most one successor; NFA: some pair with several successors; ε-NFA: λ-transitions) and the three types are used |
+| TC-A01 | The declared type matches the definition (DFA: no λ and at most one successor; NFA: some pair with several successors; ε-NFA: λ-transitions), the three types are used, and each hand-written automaton uses exactly the alphabet of its profile |
 | TC-A02 | Assignment example `PYTHON, PANDAS, TENSORFLOW, POSTGRESQL, GIT` is ACCEPTED |
 | TC-A03 | 12 accepted/rejected sequences (repetition, optional present/absent, missing slot) |
 | TC-A04 | The automaton depends on order; the sorting stage removes the dependence (30 permutations) |

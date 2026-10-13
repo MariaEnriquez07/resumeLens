@@ -4,35 +4,34 @@ digraph "DEVOPS_ENGINEER_ENFA" {
   edge [fontname="Helvetica" fontsize=9];
   start [shape=point];
   start -> q0;
-  q15 [shape=doublecircle];
+  q8 [shape=doublecircle];
   q0 -> q1 [label="LINUX"];
-  q1 -> q0 [label="λ" style=dashed];
-  q1 -> q2 [label="λ" style=dashed];
-  q2 -> q3 [label="BASH
+  q1 -> q1 [label="LINUX"];
+  q1 -> q2 [label="BASH
 PYTHON"];
-  q3 -> q2 [label="λ" style=dashed];
-  q3 -> q4 [label="λ" style=dashed];
-  q4 -> q5 [label="DOCKER"];
-  q5 -> q4 [label="λ" style=dashed];
-  q5 -> q6 [label="λ" style=dashed];
-  q6 -> q7 [label="KUBERNETES"];
-  q7 -> q6 [label="λ" style=dashed];
-  q7 -> q8 [label="λ" style=dashed];
-  q8 -> q9 [label="JENKINS
+  q2 -> q2 [label="BASH
+PYTHON"];
+  q2 -> q3 [label="DOCKER"];
+  q3 -> q3 [label="DOCKER"];
+  q3 -> q4 [label="KUBERNETES"];
+  q4 -> q4 [label="KUBERNETES"];
+  q4 -> q5 [label="JENKINS
 GITHUB_ACTIONS
 GITLAB_CI"];
-  q9 -> q8 [label="λ" style=dashed];
-  q9 -> q10 [label="λ" style=dashed];
-  q10 -> q11 [label="AWS
+  q5 -> q5 [label="JENKINS
+GITHUB_ACTIONS
+GITLAB_CI"];
+  q5 -> q6 [label="AWS
 AZURE
 GCP"];
-  q11 -> q10 [label="λ" style=dashed];
-  q11 -> q12 [label="λ" style=dashed];
-  q12 -> q13 [label="TERRAFORM
-ANSIBLE
-λ"];
-  q13 -> q12 [label="λ" style=dashed];
-  q13 -> q14 [label="λ" style=dashed];
-  q14 -> q15 [label="GIT"];
-  q15 -> q14 [label="λ" style=dashed];
+  q6 -> q6 [label="AWS
+AZURE
+GCP"];
+  q6 -> q7 [label="TERRAFORM
+ANSIBLE"];
+  q7 -> q7 [label="TERRAFORM
+ANSIBLE"];
+  q6 -> q7 [label="λ" style=dashed];
+  q7 -> q8 [label="GIT"];
+  q8 -> q8 [label="GIT"];
 }
