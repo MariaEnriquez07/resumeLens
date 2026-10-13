@@ -3,122 +3,139 @@
 Implementation: `resumelens/extraction.py` (Python `re`). Output:
 `ExtractionResult`, saved as `<name>.extraction.json`.
 
-This stage **only finds** candidate strings. It keeps them exactly as written
-(`Py Torch` stays `Py Torch`); equivalence is decided in Stage 2.
+This stage **only finds** strings. It keeps them exactly as written
+(`Py Torch` stays `Py Torch`); deciding that two strings mean the same is the
+job of Stage 2.
 
-Notation: Σ is the set of Unicode characters; `\d` = digits, `\w` = letters,
-digits and `_`, `\s` = whitespace.
+Notation used below: `\d` = a digit, `\w` = a letter, digit or `_`,
+`\b` = word boundary (the position between a word character and a non-word
+character), `?` = optional, `+` = one or more, `{m,n}` = between m and n times,
+`(?:…)` = group without capture, `(…)` = captured group.
 
-## Contact information
+## 1. Contact information
 
 ### E-mail
 ```
-[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+
+[\w.+-]+@[\w-]+(?:\.[\w-]+)+
 ```
-Language: a non-empty local part over letters, digits and `._%+-`, the symbol
-`@`, a domain label, and **one or more** `.label` groups. Accepts
-`a.b+cv@uni.edu.co`; rejects `test.example.com`, `user@`, `@domain.com`.
+Language: a user part (letters, digits, `.`, `+`, `-`), the symbol `@`, a
+domain, and **one or more** `.something` parts.
+Accepts `peter.parker@dailybugle.com`, `a.b+cv@uni.edu.co`.
+Rejects `test.example.com` (no `@`), `user@` and `@domain.com`.
 
 ### Phone
 ```
-(?<![\w+])(?:\+\d{1,3}[\s-]?)?(?:\(\d{1,4}\)[\s-]?)?\d{3}[\s-]?\d{3,4}(?:[\s-]?\d{2,4})?(?![\w])
+(?:\+\d{1,3} )?(?:\(\d{3}\)|\d{3})[ -]\d{3}[ -]\d{4}
 ```
-Language: optional country code `+d…`, optional area code in parentheses, then a
-group of 3 digits, a group of 3–4 digits and an optional group of 2–4 digits,
-separated by at most one space or hyphen. The look-arounds forbid matches glued
-to other digits/letters. Accepts `+57 300 123 4567`, `(602) 555-0199`; rejects
-year ranges such as `2019 - 2022` (two separators) and `3 years`.
+Language: an optional country code (`+` and 1–3 digits, then a space), an area
+code of 3 digits with or without parentheses, then 3 digits and 4 digits,
+separated by a space or a hyphen.
+Accepts `+57 300 123 4567`, `(602) 555-0199`, `+1 212 555 0147`.
+Rejects `2019 - 2022` and `3 years`.
 
 ### LinkedIn and GitHub
 ```
-(?:https?://)?(?:www\.)?linkedin\.com/in/[A-Za-z0-9_-]+/?
-(?:https?://)?(?:www\.)?github\.com/[A-Za-z0-9_-]+/?
+linkedin\.com/in/[\w-]+
+github\.com/[\w-]+
 ```
-Optional scheme and `www.`, fixed domain and path prefix, a user name.
+The fixed domain followed by a user name. Accepts `linkedin.com/in/peter-parker`
+and `github.com/pparker`.
 
 ### Name
 ```
-^[ \t]*(W(?:[ \t]+W){1,3})[ \t]*$      W = [A-ZÁÉÍÓÚÑÜ][A-Za-zÁÉÍÓÚÑÜáéíóúñü'’-]+
+^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?: [A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,3})$
 ```
-Applied to the **first non-empty line**: 2 to 4 words, each starting with a
-capital letter.
+Applied to the **first line** of the résumé: 2 to 4 words, each one a capital
+letter followed by lower-case letters. Accepts `Mary Jane Watson`.
 
-## Professional experience
+## 2. Professional experience
 
 ### Years of experience
 ```
-(?P<years>\d{1,2})\+?\s*(?:years?|yrs?)\s+of\s+(?:professional\s+)?experience
-(?:\s+(?P<field>(?:in|as|developing|building|with|on|designing|working)\s+[^.\n]+))?
+(\d+)\+? (?:years?|yrs?) of experience ?([^.\n]*)
 ```
-(case-insensitive) Language: a 1–2 digit number, optional `+`, the word
-`year(s)`/`yr(s)`, `of [professional] experience`, and optionally a field
-introduced by a preposition or gerund, up to the end of the sentence.
+(case-insensitive) Language: a number, an optional `+`, the word `year`,
+`years`, `yr` or `yrs`, the words `of experience`, and then the rest of the
+sentence (any character except `.` and line break).
 `3 years of experience developing web applications.` → years = 3,
-field = `developing web applications`.
+summary = `developing web applications`.
 
 ### Jobs
 ```
-^[ \t]*[-*•]?[ \t]*(?P<role>[A-Z][A-Za-z/&+ -]{2,60}?)\s+at\s+(?P<company>[A-Z][A-Za-z0-9&.' -]{1,60}?)\s*
-\(\s*(?P<start>(?:19|20)\d{2})\s*[-–]\s*(?P<end>(?:19|20)\d{2}|[Pp]resent|[Aa]ctualidad)\s*\)
+^-? ?(.+?) at (.+?) \((\d{4}) - (\d{4}|Present)\)
 ```
-Language: an optional bullet, a capitalised role, the word `at`, a capitalised
+(one match per line) Language: an optional bullet `-`, a role, the word `at`, a
 company and a period `(YYYY - YYYY)` or `(YYYY - Present)`.
-The lazy quantifiers `{…}?` stop the role at the first ` at `.
+`.+?` is *lazy*: it takes as few characters as possible, so the role stops at
+the first ` at `.
+`DevOps Engineer at Oscorp Industries (2022 - Present)` →
+role = `DevOps Engineer`, company = `Oscorp Industries`, 2022, `Present`.
 
-## Academic qualifications
+## 3. Academic qualifications
 ```
-(?P<level>Ph\.?\s?D\.?|Doctorate|M\.?\s?Sc\.?|Master(?:'s)?(?:\s+of\s+Science)?|
-          B\.?\s?Sc\.?|B\.?\s?S\.?|Bachelor(?:'s)?(?:\s+of\s+Science)?|Technologist|Technician)
-(?:\s+degree)?\s+(?:in|of)\s+(?P<field>[A-Z][A-Za-zÁÉÍÓÚáéíóúñ &-]+?)
-(?:\s*(?:,|\s-\s|\s+at\s+)\s*(?P<institution>[A-Z][A-Za-zÁÉÍÓÚáéíóúñ .&-]+?))?
-\s*(?:\(\s*(?P<year>(?:19|20)\d{2})\s*\))?[ \t]*$
+^(Ph\.D\.|M\.Sc\.|B\.Sc\.|Master of Science|Bachelor of Science) in (.+?), (.+?) \((\d{4})\)$
 ```
-Language: a degree level (with or without dots), `in`/`of`, a field, an
-optional institution after `,`, ` - ` or ` at `, and an optional `(year)` at the
-end of the line. `B.Sc. in Systems Engineering, Universidad Icesi (2020)`.
+(one match per line) Language: a degree level from a closed list, the word `in`,
+the field, a comma, the institution and the year in parentheses.
+`B.Sc. in Systems Engineering, Universidad Icesi (2020)` →
+`B.Sc.`, `Systems Engineering`, `Universidad Icesi`, 2020.
+Note: `\.` is a literal dot (a plain `.` means "any character").
 
-## Qualifications (programming languages, frameworks, databases, tools…)
+## 4. Qualifications (one regular expression per category)
 
-One pattern per category. Every pattern has the form
+Each category is a list of alternatives separated by `|`, surrounded by `\b`
+so a skill is not found inside another word (`py` is not found in `happy`).
+Matching is case-insensitive except where `(?-i:…)` is written.
 
-```
-L = (?<![\w.#+/@&-])  (f1 | f2 | … | fk)  (?![\w#+/@&-]|\.\w)
-```
-
-The prefix and suffix are a **custom word boundary**: a match cannot be glued to
-letters, digits or to the characters `. # + / @ & -` that appear inside skill
-names. This is why `js` is not found inside `Node.js`, `sql` is not found inside
-`PostgreSQL`, and `react` is not found inside `React.js`.
-
-| Category | Fragments (case-insensitive unless marked `(?-i:…)`) |
+| Category | Regular expression (inside `\b(?: … )\b`) |
 |---|---|
-| LANGUAGES | `javascript`, `js`, `typescript`, `ts`, `python`, `py`, `bash`, `(?-i:Shell)`, `(?-i:R)` |
-| FRAMEWORKS | `react(?:\.js\|js)?`, `angular(?:js)?`, `vue(?:\.js)?`, `node(?:\.js\|js)?`, `express\.js`, `(?-i:Express)`, `django`, `spring\s?boot`, `rest\s+apis?`, `(?-i:REST)` |
-| DATABASES | `no-?sql`, `postgre(?:sql\|s)`, `mysql`, `mongo(?:db)?`, `sqlite`, `sql` |
-| ML_DATA | `pandas`, `numpy`, `scikit[\s-]learn`, `sklearn`, `tensor\s?flow`, `py\s?torch`, `machine\s+learning`, `predictive\s+models` |
-| DEVOPS_CLOUD | `linux`, `ubuntu`, `docker`, `kubernetes`, `k8s`, `jenkins`, `github\s+actions`, `gitlab[\s-]ci`, `amazon\s+web\s+services`, `aws`, `azure`, `google\s+cloud`, `gcp`, `terraform`, `ansible` |
-| TOOLS | `git(?:hub)?`, `ms\s+excel`, `(?-i:Excel)`, `power\s?bi`, `tableau`, `statistics` |
+| ML_DATA | `scikit[ -]learn \| sklearn \| tensor ?flow \| py ?torch \| pandas \| numpy \| machine learning \| predictive models` |
+| DEVOPS_CLOUD | `github actions \| gitlab[ -]ci \| amazon web services \| google cloud \| kubernetes \| k8s \| docker \| jenkins \| linux \| ubuntu \| aws \| azure \| gcp \| terraform \| ansible` |
+| FRAMEWORKS | `react\.js \| reactjs \| react \| angularjs \| angular \| vue\.js \| vue \| node\.js \| nodejs \| node \| express\.js \| (?-i:Express) \| django \| spring ?boot \| rest apis? \| (?-i:REST)` |
+| DATABASES | `postgresql \| postgres \| mysql \| mongodb \| mongo \| sqlite \| no-?sql \| sql` |
+| LANGUAGES | `javascript \| js \| typescript \| ts \| python \| py \| bash \| (?-i:Shell) \| (?-i:R)` |
+| TOOLS | `github \| git \| ms excel \| (?-i:Excel) \| power ?bi \| tableau \| statistics` |
 
-Example of the language of one fragment: `react(?:\.js|js)?` accepts exactly
-{react, react.js, reactjs} (in any letter case).
+Example of the language of one fragment: `react\.js|reactjs|react` accepts
+exactly {react.js, reactjs, react}, in any letter case.
 
-### Design decisions
+### How the six expressions are used together
 
-* **Case-sensitive fragments for ambiguous words.** `R`, `Shell`, `Express`,
-  `Excel`, `REST` are English words or a single letter. Only the capitalised
-  form is accepted, so "the rest of the team" or "excel at teamwork" are not
-  qualifications (`tests/test_extraction.py::test_common_words_are_not_skills`).
-* **Leftmost-longest resolution.** All category patterns run over the text;
-  when two matches overlap the longest is kept: `Py Torch` (ML_DATA) beats
-  `Py` (LANGUAGES), `GitHub Actions` beats `GitHub`.
-* **Masking.** E-mails and profile URLs are replaced by blanks before skills are
-  searched, so `github.com/pparker` does not produce the skill `github`.
+The six are joined into one expression, each as a **named group**:
+
+```
+\b(?: (?P<ML_DATA>…) | (?P<DEVOPS_CLOUD>…) | (?P<FRAMEWORKS>…) | (?P<DATABASES>…) | (?P<LANGUAGES>…) | (?P<TOOLS>…) )\b
+```
+
+`finditer` scans the text from left to right; for each match, the name of the
+group that matched is the category of the skill.
+
+Python tries the alternatives **in the order they are written** and keeps the
+first one that matches. Two simple rules follow from that:
+
+1. **Longer alternatives first inside a category**: `node\.js` before `node`,
+   `postgresql` before `sql`. Otherwise `Node.js` would be read as `Node`.
+2. **Categories in a fixed order**: ML_DATA before LANGUAGES, so `Py Torch` is
+   read as one skill (PyTorch) and not as `Py`; DEVOPS_CLOUD before TOOLS, so
+   `GitHub Actions` is not read as `GitHub`.
+
+### Other design decisions
+
+* **Case-sensitive ambiguous words.** `R`, `Shell`, `Express`, `Excel` and
+  `REST` are also common English words or a single letter. They are only
+  accepted with that capitalisation, so "the rest of the team" or "excel at
+  teamwork" are not qualifications.
+* **E-mails and links are removed first.** Before searching for skills, the
+  e-mails and profile links are replaced by blanks, so `github.com/pparker` is
+  not read as the skill `github`.
 * **Consistency with Stage 2.** A test checks that every variant of the catalog
-  is fully matched by its category pattern, so nothing extracted is lost later.
+  is matched by the regular expression of its category, so nothing extracted is
+  lost in the next stage.
 
-### Limitations
+## Limitations
 
 * Skills written with typos (`Pyhton`) or not in the catalog are not found.
-* Context is not analysed: "I don't know Java" still extracts `Java`.
+* Context is not analysed: "I don't know Python" still extracts `Python`.
+* Jobs and degrees must follow the formats above; other formats are not found.
 * A degree field containing a skill word (`Applied Statistics`) is also counted
   as that skill.

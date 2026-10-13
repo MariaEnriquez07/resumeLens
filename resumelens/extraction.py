@@ -1,10 +1,10 @@
 """Stage 1 — Résumé information extraction with regular expressions.
 
-This stage only *finds* candidate strings in the raw text. It does NOT decide
-whether two strings are equivalent (that is Stage 2) nor whether the candidate
-fits a profile (that is Stage 3). Every string is reported exactly as written.
+This stage only *finds* strings in the raw text and keeps them exactly as they
+are written ("Py Torch" stays "Py Torch"). Deciding that two strings mean the
+same thing is the job of Stage 2.
 
-Each pattern is documented in ``docs/stage1_regex.md``.
+Every regular expression is explained in ``docs/stage1_regex.md``.
 """
 
 from __future__ import annotations
@@ -12,141 +12,85 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict, dataclass, field
-from datetime import date
 from pathlib import Path
 
 # --------------------------------------------------------------------------- #
-# Contact information
+# 1. Contact information
 # --------------------------------------------------------------------------- #
 
-# local-part @ domain . tld  (one or more dot-separated labels after the @)
-EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
+# user @ domain . tld        e.g. peter.parker@dailybugle.com
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
-# optional +country code, optional (area), then groups of digits separated by
-# spaces or hyphens. The look-arounds prevent matching inside longer numbers.
-PHONE_RE = re.compile(
-    r"(?<![\w+])"
-    r"(?:\+\d{1,3}[\s-]?)?"
-    r"(?:\(\d{1,4}\)[\s-]?)?"
-    r"\d{3}[\s-]?\d{3,4}(?:[\s-]?\d{2,4})?"
-    r"(?![\w])"
-)
+# [+country ] area number    e.g. +57 300 123 4567  |  (602) 555-0199
+PHONE_RE = re.compile(r"(?:\+\d{1,3} )?(?:\(\d{3}\)|\d{3})[ -]\d{3}[ -]\d{4}")
 
-LINKEDIN_RE = re.compile(r"(?:https?://)?(?:www\.)?linkedin\.com/in/[A-Za-z0-9_-]+/?",
-                         re.IGNORECASE)
-GITHUB_RE = re.compile(r"(?:https?://)?(?:www\.)?github\.com/[A-Za-z0-9_-]+/?",
-                       re.IGNORECASE)
+# linkedin.com/in/<user>   and   github.com/<user>
+LINKEDIN_RE = re.compile(r"linkedin\.com/in/[\w-]+", re.IGNORECASE)
+GITHUB_RE = re.compile(r"github\.com/[\w-]+", re.IGNORECASE)
 
-# Candidate name: the first non-empty line made of 2–4 capitalised words.
-_NAME_WORD = r"[A-ZÁÉÍÓÚÑÜ][A-Za-zÁÉÍÓÚÑÜáéíóúñü'’-]+"
-NAME_RE = re.compile(rf"^[ \t]*({_NAME_WORD}(?:[ \t]+{_NAME_WORD}){{1,3}})[ \t]*$")
+# The first line of the résumé: 2 to 4 capitalised words  e.g. Mary Jane Watson
+NAME_RE = re.compile(r"^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?: [A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,3})$")
 
 # --------------------------------------------------------------------------- #
-# Professional experience
+# 2. Professional experience
 # --------------------------------------------------------------------------- #
 
 # "3 years of experience developing web applications."
-EXPERIENCE_SUMMARY_RE = re.compile(
-    r"(?P<years>\d{1,2})\+?\s*(?:years?|yrs?)\s+of\s+(?:professional\s+)?experience"
-    r"(?:\s+(?P<field>(?:in|as|developing|building|with|on|designing|working)\s+[^.\n]+))?",
+EXPERIENCE_RE = re.compile(r"(\d+)\+? (?:years?|yrs?) of experience ?([^.\n]*)",
+                           re.IGNORECASE)
+
+# "DevOps Engineer at Oscorp Industries (2022 - Present)"
+JOB_RE = re.compile(r"^-? ?(.+?) at (.+?) \((\d{4}) - (\d{4}|Present)\)", re.MULTILINE)
+
+# --------------------------------------------------------------------------- #
+# 3. Academic qualifications
+# --------------------------------------------------------------------------- #
+
+# "B.Sc. in Systems Engineering, Universidad Icesi (2020)"
+EDUCATION_RE = re.compile(
+    r"^(Ph\.D\.|M\.Sc\.|B\.Sc\.|Master of Science|Bachelor of Science)"
+    r" in (.+?), (.+?) \((\d{4})\)$",
+    re.MULTILINE,
+)
+
+# --------------------------------------------------------------------------- #
+# 4. Qualifications: one regular expression per category
+# --------------------------------------------------------------------------- #
+# Inside each category the longest alternatives are written first, because a
+# Python alternation takes the first alternative that matches
+# ("node.js" must be tried before "node", "postgresql" before "sql").
+# (?-i:...) makes a part case-sensitive: "R", "Shell", "Express", "Excel" and
+# "REST" are only skills when written with that capitalisation.
+
+SKILL_PATTERNS_TEXT: dict[str, str] = {
+    "ML_DATA": r"scikit[ -]learn|sklearn|tensor ?flow|py ?torch|pandas|numpy"
+               r"|machine learning|predictive models",
+    "DEVOPS_CLOUD": r"github actions|gitlab[ -]ci|amazon web services|google cloud"
+                    r"|kubernetes|k8s|docker|jenkins|linux|ubuntu|aws|azure|gcp"
+                    r"|terraform|ansible",
+    "FRAMEWORKS": r"react\.js|reactjs|react|angularjs|angular|vue\.js|vue"
+                  r"|node\.js|nodejs|node|express\.js|(?-i:Express)|django"
+                  r"|spring ?boot|rest apis?|(?-i:REST)",
+    "DATABASES": r"postgresql|postgres|mysql|mongodb|mongo|sqlite|no-?sql|sql",
+    "LANGUAGES": r"javascript|js|typescript|ts|python|py|bash|(?-i:Shell)|(?-i:R)",
+    "TOOLS": r"github|git|ms excel|(?-i:Excel)|power ?bi|tableau|statistics",
+}
+
+# Each category on its own (used to document and test it).
+SKILL_PATTERNS: dict[str, re.Pattern[str]] = {
+    cat: re.compile(rf"\b(?:{text})\b", re.IGNORECASE)
+    for cat, text in SKILL_PATTERNS_TEXT.items()
+}
+
+# All categories joined with "|". Each one is a named group, so the name of
+# the group that matched is the category. The order of the groups matters:
+# "Py Torch" must be tried as ML_DATA before "Py" is tried as LANGUAGES, and
+# "GitHub Actions" (DEVOPS_CLOUD) before "GitHub" (TOOLS).
+SKILL_RE = re.compile(
+    r"\b(?:" + "|".join(f"(?P<{cat}>{text})" for cat, text in SKILL_PATTERNS_TEXT.items())
+    + r")\b",
     re.IGNORECASE,
 )
-
-# "Software Engineer at Acme Corp (2019 - 2022)"  /  "... (2021 - Present)"
-JOB_RE = re.compile(
-    r"^[ \t]*[-*•]?[ \t]*"
-    r"(?P<role>[A-Z][A-Za-z/&+ -]{2,60}?)\s+at\s+"
-    r"(?P<company>[A-Z][A-Za-z0-9&.' -]{1,60}?)\s*"
-    r"\(\s*(?P<start>(?:19|20)\d{2})\s*[-–]\s*"
-    r"(?P<end>(?:19|20)\d{2}|[Pp]resent|[Aa]ctualidad)\s*\)",
-    re.MULTILINE,
-)
-
-# --------------------------------------------------------------------------- #
-# Academic qualifications
-# --------------------------------------------------------------------------- #
-
-# "B.Sc. in Systems Engineering, Universidad Icesi (2022)"
-EDUCATION_RE = re.compile(
-    r"(?P<level>Ph\.?\s?D\.?|Doctorate|M\.?\s?Sc\.?|Master(?:'s)?(?:\s+of\s+Science)?|"
-    r"B\.?\s?Sc\.?|B\.?\s?S\.?|Bachelor(?:'s)?(?:\s+of\s+Science)?|Technologist|Technician)"
-    r"(?:\s+degree)?\s+(?:in|of)\s+"
-    r"(?P<field>[A-Z][A-Za-zÁÉÍÓÚáéíóúñ &-]+?)"
-    r"(?:\s*(?:,|\s-\s|\s+at\s+)\s*(?P<institution>[A-Z][A-Za-zÁÉÍÓÚáéíóúñ .&-]+?))?"
-    r"\s*(?:\(\s*(?P<year>(?:19|20)\d{2})\s*\))?[ \t]*$",
-    re.MULTILINE,
-)
-
-# --------------------------------------------------------------------------- #
-# Qualifications (skills). One regular expression per category.
-# --------------------------------------------------------------------------- #
-# A match must not be glued to other word characters. ``(?<![...])`` and
-# ``(?![...])`` implement a custom word boundary that also treats '.', '/',
-# '#', '+', '@' and '-' as part of a word, so "js" is not found inside
-# "Node.js" and "linux" is not found inside "gnu/linux".
-_LEFT = r"(?<![\w.#+/@&-])"
-_RIGHT = r"(?![\w#+/@&-]|\.\w)"
-
-SKILL_FRAGMENTS: dict[str, list[str]] = {
-    "LANGUAGES": [
-        r"javascript", r"js",
-        r"typescript", r"ts",
-        r"python", r"py",
-        r"bash", r"(?-i:Shell)",
-        r"(?-i:R)",
-    ],
-    "FRAMEWORKS": [
-        r"react(?:\.js|js)?",
-        r"angular(?:js)?",
-        r"vue(?:\.js)?",
-        r"node(?:\.js|js)?",
-        r"express\.js", r"(?-i:Express)",
-        r"django",
-        r"spring\s?boot",
-        r"rest\s+apis?", r"(?-i:REST)",
-    ],
-    "DATABASES": [
-        r"no-?sql",
-        r"postgre(?:sql|s)",
-        r"mysql",
-        r"mongo(?:db)?",
-        r"sqlite",
-        r"sql",
-    ],
-    "ML_DATA": [
-        r"pandas",
-        r"numpy",
-        r"scikit[\s-]learn", r"sklearn",
-        r"tensor\s?flow",
-        r"py\s?torch",
-        r"machine\s+learning",
-        r"predictive\s+models",
-    ],
-    "DEVOPS_CLOUD": [
-        r"linux", r"ubuntu",
-        r"docker",
-        r"kubernetes", r"k8s",
-        r"jenkins",
-        r"github\s+actions",
-        r"gitlab[\s-]ci",
-        r"amazon\s+web\s+services", r"aws",
-        r"azure",
-        r"google\s+cloud", r"gcp",
-        r"terraform", r"ansible",
-    ],
-    "TOOLS": [
-        r"git(?:hub)?",
-        r"ms\s+excel", r"(?-i:Excel)",
-        r"power\s?bi",
-        r"tableau",
-        r"statistics",
-    ],
-}
-
-SKILL_PATTERNS: dict[str, re.Pattern[str]] = {
-    category: re.compile(_LEFT + "(?:" + "|".join(frags) + ")" + _RIGHT, re.IGNORECASE)
-    for category, frags in SKILL_FRAGMENTS.items()
-}
 
 # --------------------------------------------------------------------------- #
 # Result objects
@@ -167,15 +111,14 @@ class Job:
     company: str
     start: int
     end: str
-    years: int
 
 
 @dataclass
 class Education:
     level: str
     field: str
-    institution: str | None
-    year: int | None
+    institution: str
+    year: int
 
 
 @dataclass
@@ -214,76 +157,35 @@ def _unique(items: list[str]) -> list[str]:
 
 
 def extract_name(text: str) -> str | None:
-    for line in text.splitlines():
-        if line.strip():
-            m = NAME_RE.match(line)
-            return m.group(1) if m else None
-    return None
-
-
-def _mask(text: str, patterns: list[re.Pattern[str]]) -> str:
-    """Replace matches with spaces (keeps offsets) so URLs/e-mails are not
-    scanned again as skills (e.g. 'github' inside 'github.com/...')."""
-    chars = list(text)
-    for pat in patterns:
-        for m in pat.finditer(text):
-            for i in range(m.start(), m.end()):
-                chars[i] = " "
-    return "".join(chars)
+    first_line = text.strip().splitlines()[0].strip() if text.strip() else ""
+    m = NAME_RE.match(first_line)
+    return m.group(1) if m else None
 
 
 def extract_skills(text: str) -> list[SkillMention]:
-    """Find every qualification mention.
-
-    All category patterns are applied; when two matches overlap the longest
-    one is kept (leftmost-longest policy), e.g. "Py Torch" (ML_DATA) wins over
-    "Py" (LANGUAGES) and "GitHub Actions" wins over "GitHub".
-    """
-    masked = _mask(text, [EMAIL_RE, LINKEDIN_RE, GITHUB_RE])
-    found: list[SkillMention] = []
-    for category, pattern in SKILL_PATTERNS.items():
-        for m in pattern.finditer(masked):
-            found.append(SkillMention(category, m.group(0), m.start(), m.end()))
-
-    found.sort(key=lambda s: (-(s.end - s.start), s.start))
-    kept: list[SkillMention] = []
-    for s in found:
-        if all(s.end <= k.start or s.start >= k.end for k in kept):
-            kept.append(s)
-    kept.sort(key=lambda s: s.start)
-    return kept
+    """Find every qualification mention, left to right."""
+    # E-mails and profile links are removed first, so "github.com/pparker"
+    # is not read as the skill "github".
+    for pattern in (EMAIL_RE, LINKEDIN_RE, GITHUB_RE):
+        text = pattern.sub(lambda m: " " * len(m.group(0)), text)
+    return [SkillMention(m.lastgroup, m.group(0), m.start(), m.end())
+            for m in SKILL_RE.finditer(text)]
 
 
 def extract_experience(text: str) -> tuple[int | None, str | None, list[Job]]:
     years = summary = None
-    m = EXPERIENCE_SUMMARY_RE.search(text)
+    m = EXPERIENCE_RE.search(text)
     if m:
-        years = int(m.group("years"))
-        summary = m.group("field").strip() if m.group("field") else None
-
-    jobs = []
-    for jm in JOB_RE.finditer(text):
-        start = int(jm.group("start"))
-        end_raw = jm.group("end")
-        end_year = int(end_raw) if end_raw.isdigit() else date.today().year
-        jobs.append(Job(jm.group("role").strip(), jm.group("company").strip(),
-                        start, end_raw, max(0, end_year - start)))
-    if years is None and jobs:
-        years = sum(j.years for j in jobs)
+        years = int(m.group(1))
+        summary = m.group(2).strip() or None
+    jobs = [Job(role, company, int(start), end)
+            for role, company, start, end in JOB_RE.findall(text)]
     return years, summary, jobs
 
 
 def extract_education(text: str) -> list[Education]:
-    out = []
-    for m in EDUCATION_RE.finditer(text):
-        inst = m.group("institution")
-        out.append(Education(
-            level=m.group("level"),
-            field=m.group("field").strip(),
-            institution=inst.strip() if inst else None,
-            year=int(m.group("year")) if m.group("year") else None,
-        ))
-    return out
+    return [Education(level, field_, institution, int(year))
+            for level, field_, institution, year in EDUCATION_RE.findall(text)]
 
 
 def extract(text: str) -> ExtractionResult:
@@ -292,7 +194,7 @@ def extract(text: str) -> ExtractionResult:
     return ExtractionResult(
         name=extract_name(text),
         emails=_unique(EMAIL_RE.findall(text)),
-        phones=_unique([p.strip() for p in PHONE_RE.findall(text)]),
+        phones=_unique(PHONE_RE.findall(text)),
         linkedin=_unique(LINKEDIN_RE.findall(text)),
         github=_unique(GITHUB_RE.findall(text)),
         experience_years=years,
