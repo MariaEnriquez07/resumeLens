@@ -83,7 +83,7 @@ def test_skills_are_kept_as_written():
     assert raw("Py Torch, Tensor Flow, sklearn") == ["Py Torch", "Tensor Flow", "sklearn"]
 
 
-# TC-E05 — custom word boundaries
+# TC-E05 — word boundaries (\b) and longest alternative first
 @pytest.mark.parametrize("text,expected", [
     ("Node.js", ["Node.js"]),                   # not 'js' inside Node.js
     ("Vue.js, React.js", ["Vue.js", "React.js"]),
@@ -95,8 +95,8 @@ def test_boundaries(text, expected):
     assert raw(text) == expected
 
 
-# TC-E06 — leftmost-longest overlap resolution between categories
-def test_longest_match_wins():
+# TC-E06 — order of the categories: ML_DATA is tried before LANGUAGES
+def test_category_order():
     mentions = extract_skills("Py Torch")
     assert [(m.category, m.text) for m in mentions] == [("ML_DATA", "Py Torch")]
 
