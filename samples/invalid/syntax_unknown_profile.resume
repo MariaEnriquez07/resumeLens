@@ -1,0 +1,14 @@
+resume {
+    candidate "Test Candidate";
+    contact { email: test@example.com; }
+    skills {
+        LANGUAGES: JAVASCRIPT;
+        FRAMEWORKS: REACT, NODE_JS;
+        DATABASES: POSTGRESQL;
+        TOOLS: GIT;
+    }
+    classification {
+        profile FRONTEND_DEVELOPER is ACCEPTED via DFA
+            sequence: JAVASCRIPT, REACT, NODE_JS, POSTGRESQL, GIT;
+    }
+}

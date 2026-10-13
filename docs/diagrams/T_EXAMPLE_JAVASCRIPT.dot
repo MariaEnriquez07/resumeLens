@@ -1,0 +1,21 @@
+digraph "T_EXAMPLE_JAVASCRIPT" {
+  rankdir=LR;
+  node [shape=circle fontname="Helvetica" fontsize=10];
+  edge [fontname="Helvetica" fontsize=9];
+  start [shape=point];
+  start -> q0;
+  qf [shape=doublecircle];
+  q0 -> q1 [label="J|j : λ"];
+  q1 -> q2 [label="S|s : λ"];
+  q2 -> qf [label="# : JAVASCRIPT"];
+  q1 -> q3 [label="A|a : λ"];
+  q3 -> q4 [label="V|v : λ"];
+  q4 -> q5 [label="A|a : λ"];
+  q5 -> q6 [label="S|s : λ"];
+  q6 -> q7 [label="C|c : λ"];
+  q7 -> q8 [label="R|r : λ"];
+  q8 -> q9 [label="I|i : λ"];
+  q9 -> q10 [label="P|p : λ"];
+  q10 -> q11 [label="T|t : λ"];
+  q11 -> qf [label="# : JAVASCRIPT"];
+}

@@ -1,0 +1,4 @@
+pyformlang>=1.0.11
+textX>=4.0
+pytest>=8.0
+streamlit>=1.30

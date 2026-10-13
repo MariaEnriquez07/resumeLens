@@ -1,0 +1,37 @@
+digraph "DEVOPS_ENGINEER_ENFA" {
+  rankdir=LR;
+  node [shape=circle fontname="Helvetica" fontsize=11];
+  edge [fontname="Helvetica" fontsize=9];
+  start [shape=point];
+  start -> q0;
+  q8 [shape=doublecircle];
+  q0 -> q1 [label="LINUX"];
+  q1 -> q1 [label="LINUX"];
+  q1 -> q2 [label="BASH
+PYTHON"];
+  q2 -> q2 [label="BASH
+PYTHON"];
+  q2 -> q3 [label="DOCKER"];
+  q3 -> q3 [label="DOCKER"];
+  q3 -> q4 [label="KUBERNETES"];
+  q4 -> q4 [label="KUBERNETES"];
+  q4 -> q5 [label="JENKINS
+GITHUB_ACTIONS
+GITLAB_CI"];
+  q5 -> q5 [label="JENKINS
+GITHUB_ACTIONS
+GITLAB_CI"];
+  q5 -> q6 [label="AWS
+AZURE
+GCP"];
+  q6 -> q6 [label="AWS
+AZURE
+GCP"];
+  q6 -> q7 [label="TERRAFORM
+ANSIBLE"];
+  q7 -> q7 [label="TERRAFORM
+ANSIBLE"];
+  q6 -> q7 [label="λ" style=dashed];
+  q7 -> q8 [label="GIT"];
+  q8 -> q8 [label="GIT"];
+}
