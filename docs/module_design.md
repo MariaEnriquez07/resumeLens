@@ -34,7 +34,8 @@ adding one `Profile(...)` object; no stage has to change.
 | | `Normalizer.translate(raw, category)` | raw string | `(canonical token, transducer)` or `None` |
 | | `Normalizer.normalize(items)` | raw strings | `NormalizationResult` (tokens, mapping, unrecognized) |
 | | `sort_for_profile(tokens, profile)` | tokens, profile | canonical sequence |
-| `recognition.py` | `build_dfa / build_nfa / build_enfa(profile)` | profile | `AutomatonSpec` (explicit 5-tuple + pyformlang automaton) |
+| `recognition.py` | `full_stack_dfa()`, `ml_engineer_nfa()`, `devops_enfa()`, `data_analyst_dfa()` | — | `AutomatonSpec` (explicit 5-tuple + pyformlang automaton), one per profile |
+| | `build_automaton(profile)` | profile | the automaton of that profile |
 | | `Recognizer.evaluate(tokens, key)` | tokens, profile key | `ProfileResult` (sequence, accepted, missing) |
 | | `Recognizer.classify(tokens)` | tokens | `list[ProfileResult]` for the four profiles |
 | `dsl/resume.tx` | textX grammar | — | metamodel |
@@ -66,3 +67,4 @@ adding one `Profile(...)` object; no stage has to change.
 * Stage 4 distinguishes `TextXSyntaxError` (lexical/syntactic) from
   `TextXSemanticError` (context-sensitive rules); the CLI returns exit codes 2
   and 3 respectively.
+

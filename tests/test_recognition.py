@@ -32,6 +32,16 @@ def test_declared_type(key):
         assert has_lambda
 
 
+@pytest.mark.parametrize("key", PROFILES)
+def test_automaton_matches_profile(key):
+    """The hand-written automaton uses exactly the profile alphabet and type."""
+    profile = PROFILES[key]
+    spec = build_automaton(profile)
+    used = {a for _, a, _ in spec.transitions if a != LAMBDA}
+    assert used == set(profile.alphabet)
+    assert spec.kind == profile.construction
+
+
 def test_one_of_each_kind_is_used():
     kinds = {p.construction for p in PROFILES.values()}
     assert kinds == {"DFA", "NFA", "ENFA"}

@@ -101,7 +101,7 @@ def full_stack_dfa() -> AutomatonSpec:
     return _make("DFA", "FULL_STACK_DEVELOPER", 7, t, ["q6"])
 
 
-# --------------------------------------------------------------------------- #
+
 # Machine Learning Engineer — NFA
 #   PYTHON⁺ · (PANDAS|NUMPY)⁺ · (SCIKIT_LEARN|TENSORFLOW|PYTORCH)⁺
 #   · ML_MODELING* · database⁺ · GIT⁺
@@ -109,7 +109,6 @@ def full_stack_dfa() -> AutomatonSpec:
 # GUESSES: either more symbols of that requirement follow (it stays in qi)
 # or that was the last one (it moves to qi+1). So δ(q0, PYTHON) = {q0, q1}:
 # one pair with two next states, which makes it an NFA.
-# --------------------------------------------------------------------------- #
 
 def ml_engineer_nfa() -> AutomatonSpec:
     py = ("PYTHON",)
@@ -128,14 +127,13 @@ def ml_engineer_nfa() -> AutomatonSpec:
     return _make("NFA", "MACHINE_LEARNING_ENGINEER", 7, t, ["q6"])
 
 
-# --------------------------------------------------------------------------- #
 # DevOps Engineer — ε-NFA
 #   LINUX⁺ · (BASH|PYTHON)⁺ · DOCKER⁺ · KUBERNETES⁺ · CI/CD⁺ · cloud⁺
 #   · (TERRAFORM|ANSIBLE)* · GIT⁺
 # Same chain as a DFA, but the optional infrastructure-as-code requirement is
 # skipped with a λ-transition q6 → q7 (it moves without reading a symbol).
 # That λ-transition makes it an ε-NFA.
-# --------------------------------------------------------------------------- #
+
 
 def devops_enfa() -> AutomatonSpec:
     linux = ("LINUX",)
@@ -158,12 +156,11 @@ def devops_enfa() -> AutomatonSpec:
     return _make("ENFA", "DEVOPS_ENGINEER", 9, t, ["q8"])
 
 
-# --------------------------------------------------------------------------- #
 # Data Analyst — DFA
 #   SQL⁺ · EXCEL⁺ · (POWER_BI|TABLEAU)⁺ · (PYTHON|R)⁺ · STATISTICS*
 # The optional requirement is the last one, so q4 (without statistics) and
 # q5 (with statistics) are both accepting states.
-# --------------------------------------------------------------------------- #
+
 
 def data_analyst_dfa() -> AutomatonSpec:
     query = ("SQL", "MYSQL", "POSTGRESQL")
