@@ -1,27 +1,17 @@
 """Stage 3 — Qualification-pattern recognition with finite automata.
 
-For a profile with slots S1..Sn (alternatives A1..An) the recognised language
-is  L = X1 ... Xn  with  Xi = Ai+  (required)  or  Xi = Ai*  (optional).
+Each profile has one automaton, written below as an explicit list of
+transitions (each line is one arrow of its diagram). The input of an
+automaton is the canonical sequence of a résumé: its tokens filtered to the
+profile alphabet and sorted in the profile order (``profiles.py``).
 
-Each profile declares the type of automaton that models it
-(``Profile.construction``). The three types seen in the course are used:
+    Full Stack Developer        DFA
+    Machine Learning Engineer   NFA
+    DevOps Engineer             ε-NFA
+    Data Analyst                DFA
 
-DFA   (Full Stack Developer, Data Analyst) — ``build_dfa``
-    States q0..qn. qi means "slots 1..i are satisfied and the last symbol read
-    belongs to slot i". δ(qi, a) = qi for a ∈ Ai (repetition) and
-    δ(qi, a) = qj for a ∈ Aj when every slot between i and j is optional.
-    The alternative sets of different slots are disjoint, so every
-    (state, symbol) pair has at most one successor.
-
-NFA   (Machine Learning Engineer) — ``build_nfa``
-    States q0..qn plus pj ("inside slot j, more symbols follow"). On reading
-    a ∈ Aj the automaton guesses whether a is the last symbol of the slot:
-    δ(qi, a) = {qj, pj} and δ(pj, a) = {pj, qj}.
-
-ε-NFA (DevOps Engineer) — ``build_enfa``
-    States s_j (entering slot j) and t_j (slot j done), renamed q0..q(2n-1).
-    s_j --a--> t_j for a ∈ Aj,  t_j --λ--> s_j (repeat),
-    t_j --λ--> s_{j+1} (next slot),  s_j --λ--> t_j if the slot is optional.
+The three types seen in the course are used. Why each one is of its type is
+explained next to it and in ``docs/stage3_automata.md``.
 """
 
 from __future__ import annotations
@@ -37,7 +27,7 @@ from pyformlang.finite_automaton import (
 )
 from pyformlang.finite_automaton import Epsilon
 
-from .profiles import PROFILES, Profile, Slot
+from .profiles import PROFILES, Profile
 
 LAMBDA = "λ"
 
@@ -61,22 +51,9 @@ class AutomatonSpec:
         return table
 
 
-def _next_slots(slots: tuple[Slot, ...], i: int) -> list[int]:
-    """Slots reachable after state i (0-based slot indices), skipping optionals."""
-    out = []
-    for j in range(i, len(slots)):
-        out.append(j)
-        if not slots[j].optional:
-            break
-    return out
-
-
-def _tail_optional(slots: tuple[Slot, ...], i: int) -> bool:
-    """True if every slot after position i (exclusive) is optional."""
-    return all(s.optional for s in slots[i:])
-
-
-def _build(kind: str, profile: Profile, states, transitions, start, finals) -> AutomatonSpec:
+def _make(kind: str, profile_key: str, n_states: int,
+          transitions: list[tuple[str, str, str]], finals: list[str]) -> AutomatonSpec:
+    """Build the pyformlang automaton from an explicit list of transitions."""
     if kind == "DFA":
         fa = DeterministicFiniteAutomaton()
     elif kind == "NFA":
@@ -86,75 +63,133 @@ def _build(kind: str, profile: Profile, states, transitions, start, finals) -> A
     for src, sym, dst in transitions:
         symbol = Epsilon() if sym == LAMBDA else Symbol(sym)
         fa.add_transition(State(src), symbol, State(dst))
-    fa.add_start_state(State(start))
+    fa.add_start_state(State("q0"))
     for f in finals:
         fa.add_final_state(State(f))
-    return AutomatonSpec(profile.key, kind, states, profile.alphabet,
-                         transitions, start, finals, fa)
+    states = [f"q{i}" for i in range(n_states)]
+    alphabet = PROFILES[profile_key].alphabet
+    return AutomatonSpec(profile_key, kind, states, alphabet, transitions, "q0", finals, fa)
 
 
-def build_dfa(profile: Profile) -> AutomatonSpec:
-    slots = profile.slots
-    n = len(slots)
-    states = [f"q{i}" for i in range(n + 1)]
-    transitions: list[tuple[str, str, str]] = []
-    for i in range(n + 1):
-        if i >= 1:  # repetition inside slot i
-            for a in slots[i - 1].alternatives:
-                transitions.append((f"q{i}", a, f"q{i}"))
-        for j in _next_slots(slots, i):
-            for a in slots[j].alternatives:
-                transitions.append((f"q{i}", a, f"q{j + 1}"))
-    finals = [f"q{i}" for i in range(1, n + 1) if _tail_optional(slots, i)]
-    return _build("DFA", profile, states, transitions, "q0", finals)
+def arrows(src: str, symbols: tuple[str, ...], dst: str) -> list[tuple[str, str, str]]:
+    """One arrow of the diagram labelled with several symbols."""
+    return [(src, a, dst) for a in symbols]
 
 
-def build_nfa(profile: Profile) -> AutomatonSpec:
-    slots = profile.slots
-    n = len(slots)
-    states = [f"q{i}" for i in range(n + 1)] + [f"p{j}" for j in range(1, n + 1)]
-    transitions: list[tuple[str, str, str]] = []
-    for i in range(n + 1):
-        for j in _next_slots(slots, i):
-            for a in slots[j].alternatives:
-                transitions.append((f"q{i}", a, f"q{j + 1}"))   # last of slot
-                transitions.append((f"q{i}", a, f"p{j + 1}"))   # more to come
-    for j in range(1, n + 1):
-        for a in slots[j - 1].alternatives:
-            transitions.append((f"p{j}", a, f"p{j}"))
-            transitions.append((f"p{j}", a, f"q{j}"))
-    finals = [f"q{i}" for i in range(1, n + 1) if _tail_optional(slots, i)]
-    return _build("NFA", profile, states, transitions, "q0", finals)
+# --------------------------------------------------------------------------- #
+# Full Stack Developer — DFA
+#   JS/TS⁺ · framework⁺ · backend⁺ · REST_API* · database⁺ · GIT⁺
+# Each state has at most one transition per symbol and there is no λ:
+# it is a DFA. Repetition = self-loop; the optional REST_API is skipped by
+# the direct arrow q3 → q5.
+# --------------------------------------------------------------------------- #
+
+def full_stack_dfa() -> AutomatonSpec:
+    lang = ("JAVASCRIPT", "TYPESCRIPT")
+    front = ("REACT", "ANGULAR", "VUE")
+    back = ("NODE_JS", "EXPRESS", "DJANGO", "SPRING_BOOT")
+    api = ("REST_API",)
+    db = ("SQL", "NOSQL", "POSTGRESQL", "MYSQL", "MONGODB", "SQLITE")
+    git = ("GIT",)
+    t = (arrows("q0", lang, "q1") + arrows("q1", lang, "q1")
+         + arrows("q1", front, "q2") + arrows("q2", front, "q2")
+         + arrows("q2", back, "q3") + arrows("q3", back, "q3")
+         + arrows("q3", api, "q4") + arrows("q4", api, "q4")
+         + arrows("q3", db, "q5")                      # skips the optional API
+         + arrows("q4", db, "q5") + arrows("q5", db, "q5")
+         + arrows("q5", git, "q6") + arrows("q6", git, "q6"))
+    return _make("DFA", "FULL_STACK_DEVELOPER", 7, t, ["q6"])
 
 
-def build_enfa(profile: Profile) -> AutomatonSpec:
-    slots = profile.slots
-    n = len(slots)
+# --------------------------------------------------------------------------- #
+# Machine Learning Engineer — NFA
+#   PYTHON⁺ · (PANDAS|NUMPY)⁺ · (SCIKIT_LEARN|TENSORFLOW|PYTORCH)⁺
+#   · ML_MODELING* · database⁺ · GIT⁺
+# From qi, when the automaton reads a symbol of the next requirement it
+# GUESSES: either more symbols of that requirement follow (it stays in qi)
+# or that was the last one (it moves to qi+1). So δ(q0, PYTHON) = {q0, q1}:
+# one pair with two next states, which makes it an NFA.
+# --------------------------------------------------------------------------- #
 
-    def s(j: int) -> str:  # entering slot j (0-based)
-        return f"q{2 * j}"
-
-    def t(j: int) -> str:  # slot j satisfied
-        return f"q{2 * j + 1}"
-
-    states = [f"q{k}" for k in range(2 * n)]
-    transitions: list[tuple[str, str, str]] = []
-    for j, slot in enumerate(slots):
-        for a in slot.alternatives:
-            transitions.append((s(j), a, t(j)))
-        transitions.append((t(j), LAMBDA, s(j)))
-        if slot.optional:
-            transitions.append((s(j), LAMBDA, t(j)))
-        if j + 1 < n:
-            transitions.append((t(j), LAMBDA, s(j + 1)))
-    return _build("ENFA", profile, states, transitions, s(0), [t(n - 1)])
+def ml_engineer_nfa() -> AutomatonSpec:
+    py = ("PYTHON",)
+    data = ("PANDAS", "NUMPY")
+    fw = ("SCIKIT_LEARN", "TENSORFLOW", "PYTORCH")
+    model = ("ML_MODELING",)
+    db = ("SQL", "POSTGRESQL", "MYSQL")
+    git = ("GIT",)
+    t = (arrows("q0", py, "q0") + arrows("q0", py, "q1")
+         + arrows("q1", data, "q1") + arrows("q1", data, "q2")
+         + arrows("q2", fw, "q2") + arrows("q2", fw, "q3")
+         + arrows("q3", model, "q3") + arrows("q3", model, "q4")
+         + arrows("q3", db, "q4") + arrows("q3", db, "q5")    # skips ML_MODELING
+         + arrows("q4", db, "q4") + arrows("q4", db, "q5")
+         + arrows("q5", git, "q5") + arrows("q5", git, "q6"))
+    return _make("NFA", "MACHINE_LEARNING_ENGINEER", 7, t, ["q6"])
 
 
-BUILDERS = {"DFA": build_dfa, "NFA": build_nfa, "ENFA": build_enfa}
+# --------------------------------------------------------------------------- #
+# DevOps Engineer — ε-NFA
+#   LINUX⁺ · (BASH|PYTHON)⁺ · DOCKER⁺ · KUBERNETES⁺ · CI/CD⁺ · cloud⁺
+#   · (TERRAFORM|ANSIBLE)* · GIT⁺
+# Same chain as a DFA, but the optional infrastructure-as-code requirement is
+# skipped with a λ-transition q6 → q7 (it moves without reading a symbol).
+# That λ-transition makes it an ε-NFA.
+# --------------------------------------------------------------------------- #
+
+def devops_enfa() -> AutomatonSpec:
+    linux = ("LINUX",)
+    script = ("BASH", "PYTHON")
+    docker = ("DOCKER",)
+    k8s = ("KUBERNETES",)
+    cicd = ("JENKINS", "GITHUB_ACTIONS", "GITLAB_CI")
+    cloud = ("AWS", "AZURE", "GCP")
+    iac = ("TERRAFORM", "ANSIBLE")
+    git = ("GIT",)
+    t = (arrows("q0", linux, "q1") + arrows("q1", linux, "q1")
+         + arrows("q1", script, "q2") + arrows("q2", script, "q2")
+         + arrows("q2", docker, "q3") + arrows("q3", docker, "q3")
+         + arrows("q3", k8s, "q4") + arrows("q4", k8s, "q4")
+         + arrows("q4", cicd, "q5") + arrows("q5", cicd, "q5")
+         + arrows("q5", cloud, "q6") + arrows("q6", cloud, "q6")
+         + arrows("q6", iac, "q7") + arrows("q7", iac, "q7")
+         + [("q6", LAMBDA, "q7")]                          # skips IaC
+         + arrows("q7", git, "q8") + arrows("q8", git, "q8"))
+    return _make("ENFA", "DEVOPS_ENGINEER", 9, t, ["q8"])
 
 
-def build_automaton(profile: Profile, kind: str | None = None) -> AutomatonSpec:
-    return BUILDERS[kind or profile.construction](profile)
+# --------------------------------------------------------------------------- #
+# Data Analyst — DFA
+#   SQL⁺ · EXCEL⁺ · (POWER_BI|TABLEAU)⁺ · (PYTHON|R)⁺ · STATISTICS*
+# The optional requirement is the last one, so q4 (without statistics) and
+# q5 (with statistics) are both accepting states.
+# --------------------------------------------------------------------------- #
+
+def data_analyst_dfa() -> AutomatonSpec:
+    query = ("SQL", "MYSQL", "POSTGRESQL")
+    excel = ("EXCEL",)
+    viz = ("POWER_BI", "TABLEAU")
+    prog = ("PYTHON", "R")
+    stats = ("STATISTICS",)
+    t = (arrows("q0", query, "q1") + arrows("q1", query, "q1")
+         + arrows("q1", excel, "q2") + arrows("q2", excel, "q2")
+         + arrows("q2", viz, "q3") + arrows("q3", viz, "q3")
+         + arrows("q3", prog, "q4") + arrows("q4", prog, "q4")
+         + arrows("q4", stats, "q5") + arrows("q5", stats, "q5"))
+    return _make("DFA", "DATA_ANALYST", 6, t, ["q4", "q5"])
+
+
+AUTOMATA = {
+    "FULL_STACK_DEVELOPER": full_stack_dfa,
+    "MACHINE_LEARNING_ENGINEER": ml_engineer_nfa,
+    "DEVOPS_ENGINEER": devops_enfa,
+    "DATA_ANALYST": data_analyst_dfa,
+}
+
+
+def build_automaton(profile: Profile) -> AutomatonSpec:
+    """The automaton that models ``profile``."""
+    return AUTOMATA[profile.key]()
 
 
 @dataclass
